@@ -1,17 +1,26 @@
 class OrderedList < ApplicationRecord
   belongs_to :order
   belongs_to :item
-  # スコープを定義してロックをかける
-  scope :lock_for_update, -> { lock('FOR UPDATE') }
 
-  # 注文処理をトランザクション内で行う
   def self.place_order(order_id:, item_id:, quantity:)
-    ActiveRecord::Base.transaction do
-      # FOR UPDATEでロックをかけて商品に対する他の注文をブロック
-      ordered_list = OrderedList.lock_for_update.find_or_create_by(order_id: order_id, item_id: item_id)
-      # 注文数を加算
+    transaction do
+      # 商品を悲観的ロックで取得
+      item = Item.lock("FOR UPDATE").find(item_id)
+      puts "Item total_quantity before: #{item.total_quantity}"
+
+      # 注文を取得
+      existing_order = Order.find(order_id)
+
+      # 注文アイテムを追加または更新
+      ordered_list = existing_order.ordered_lists.find_or_initialize_by(item_id: item_id)
       ordered_list.quantity += quantity
       ordered_list.save!
+      puts "OrderedList quantity after: #{ordered_list.quantity}"
+
+      # 商品の数量を更新
+      item.total_quantity += quantity
+      item.save!
+      puts "Item total_quantity after: #{item.total_quantity}"
     end
   end
 end
