@@ -23,7 +23,7 @@ class OrderedList < ApplicationRecord
       puts "OrderedList quantity after: #{ordered_list.quantity}"
 
       # 商品の数量を更新
-      item.total_quantity += quantity
+      item.total_quantity -= quantity
       item.save!
       puts "Item total_quantity after: #{item.total_quantity}"
     end
