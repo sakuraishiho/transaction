@@ -8,6 +8,11 @@ class OrderedList < ApplicationRecord
       item = Item.lock("FOR UPDATE").find(item_id)
       puts "Item total_quantity before: #{item.total_quantity}"
 
+       # 商品の在庫が足りているか確認
+      if item.total_quantity < quantity
+        raise StandardError.new("在庫が足りません")
+      end
+
       # 注文を取得
       existing_order = Order.find(order_id)
 
@@ -22,5 +27,8 @@ class OrderedList < ApplicationRecord
       item.save!
       puts "Item total_quantity after: #{item.total_quantity}"
     end
+  rescue => e
+    puts "Error occurred: #{e.message}"
+    raise ActiveRecord::Rollback
   end
 end
